@@ -1,545 +1,949 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>משחק מילים - The Giver</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Heebo', sans-serif;
-            background-color: #f3f4f6;
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>פורטל אוצר המילים - The Giver</title>
+  
+  <!-- טעינת ספריות React ו-Tailwind ישירות לדפדפן -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;800&display=swap" rel="stylesheet">
+  
+  <style>
+    body { font-family: 'Heebo', system-ui, -apple-system, sans-serif; margin: 0; padding: 0; }
+    
+    /* INBAR SPECIFIC ANIMATIONS */
+    @keyframes inbar-shake {
+        0%, 100% { transform: translateX(0); }
+        20%, 60% { transform: translateX(-5px); }
+        40%, 80% { transform: translateX(5px); }
+    }
+    .inbar-shake { animation: inbar-shake 0.4s ease-in-out; }
+    
+    @keyframes inbar-fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .inbar-fade-in { animation: inbar-fadeIn 0.3s ease-in-out; }
+    
+    .inbar-btn-hover-effect { transition: all 0.2s ease-in-out; }
+    .inbar-btn-hover-effect:hover { 
+        transform: translateY(-2px); 
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); 
+    }
 
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            20%, 60% { transform: translateX(-5px); }
-            40%, 80% { transform: translateX(5px); }
-        }
-
-        .shake {
-            animation: shake 0.4s ease-in-out;
-        }
-
-        .fade-in {
-            animation: fadeIn 0.3s ease-in-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .btn-hover-effect {
-            transition: all 0.2s ease-in-out;
-        }
-        
-        .btn-hover-effect:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-
-        .correct-anim {
-            background-color: #10b981 !important;
-            color: white !important;
-            border-color: #10b981 !important;
-        }
-
-        .wrong-anim {
-            background-color: #ef4444 !important;
-            color: white !important;
-            border-color: #ef4444 !important;
-        }
-    </style>
+    .correct-anim { background-color: #10b981 !important; color: white !important; border-color: #10b981 !important; }
+    .wrong-anim { background-color: #ef4444 !important; color: white !important; border-color: #ef4444 !important; }
+  </style>
 </head>
-<body class="text-gray-800">
+<body class="bg-gray-100">
+  
+  <div id="root"></div>
 
-    <div class="flex-grow flex items-center justify-center p-4">
-        <div id="app-container" class="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden relative border border-gray-100">
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // ============================================================================
+    // ICONS
+    // ============================================================================
+    const Icon = ({ d, size = 24, className = "" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{ __html: d }} />
+    );
+
+    const Cat = (p) => <Icon {...p} d={'<path d="M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 6.42-2.26 1.4.58-.42 7-.42 7 .57 1.07 1 2.24 1 3.44C21 17.9 16.97 21 12 21s-9-3-9-7.56c0-1.25.5-2.4 1.1-3.44 0 0-1.89-6.42-.5-7 1.39-.58 4.72.23 6.5 2.23A9.04 9.04 0 0 1 12 5Z"/><path d="M8 14v.5"/><path d="M16 14v.5"/><path d="M11.25 16.25h1.5L12 17l-.75-.75Z"/>'} />;
+    const Heart = (p) => <Icon {...p} d={'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>'} />;
+    const Star = (p) => <Icon {...p} d={'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>'} />;
+    const Sparkles = (p) => <Icon {...p} d={'<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M3 5h4"/><path d="M19 3v4"/><path d="M17 5h4"/><path d="M19 17v4"/><path d="M17 19h4"/>'} />;
+    const RefreshCw = (p) => <Icon {...p} d={'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>'} />;
+    const Trophy = (p) => <Icon {...p} d={'<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>'} />;
+    const Languages = (p) => <Icon {...p} d={'<path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/>'} />;
+    const PenTool = (p) => <Icon {...p} d={'<path d="m12 19 7-7 3 3-7 7-3-3z"/><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="m2 2 7.586 7.586"/><circle cx="11" cy="11" r="2"/>'} />;
+    const CheckCircle = (p) => <Icon {...p} d={'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'} />;
+    const XCircle = (p) => <Icon {...p} d={'<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'} />;
+    const ArrowLeft = (p) => <Icon {...p} d={'<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>'} />;
+    const Home = (p) => <Icon {...p} d={'<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>'} />;
+    const Sparkle = (p) => <Icon {...p} d={'<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>'} />;
+    const LayoutTemplate = (p) => <Icon {...p} d={'<rect width="18" height="7" x="3" y="3" rx="1"/><rect width="9" height="7" x="3" y="14" rx="1"/><rect width="5" height="7" x="16" y="14" rx="1"/>'} />;
+
+    // ============================================================================
+    // SHARED UTILS & DATA
+    // ============================================================================
+
+    const shuffleArray = (array) => {
+      const newArr = [...array];
+      for (let i = newArr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+      }
+      return newArr;
+    };
+
+    // ============================================================================
+    // SHELLY'S APP DATA & HELPERS
+    // ============================================================================
+
+    const SHELLY_QUESTIONS = [
+      { word: "rigid", correct: "נוקשה", wrong: ["רך", "שקוף", "מהיר"] },
+      { word: "grotesque(ly)", correct: "גרוטסקי / מעוות", wrong: ["יפהפה / מושלם", "רגיל / שגרתי", "עדין / רך"] },
+      { word: "frantically", correct: "בטירוף / בקדחתנות", wrong: ["ברוגע", "באיטיות", "בשמחה"] },
+      { word: "carnage", correct: "קטל / טבח", wrong: ["שלום / הרמוניה", "חגיגה", "מנוחה"] },
+      { word: "affectionate(ly)", correct: "אוהב / מלא חיבה", wrong: ["שונא / עויין", "אדיש", "כועס"] },
+      { word: "pervaded", correct: "התפשט / חדר", wrong: ["נעלם / התפוגג", "התכווץ", "עצר"] },
+      { word: "hearth", correct: "אח / קמין", wrong: ["חלון", "גג", "רצפה / שטיח"] },
+      { word: "polished", correct: "מלוטש / מבריק", wrong: ["מחוספס", "מלוכלך", "שבור"] },
+      { word: "to treasure", correct: "להעריך / להוקיר", wrong: ["לזרוק / לנטוש", "לשכוח", "להרוס"] },
+      { word: "rehearsed", correct: "מתורגל / עבר חזרות", wrong: ["מאולתר", "חדש", "פתאומי"] },
+      { word: "unexpected", correct: "לא צפוי", wrong: ["רגיל", "מתוכנן", "משעמם"] },
+      { word: "depth", correct: "עומק", wrong: ["רוחב", "גובה", "שטח"] },
+      { word: "shallow", correct: "רדוד", wrong: ["עמוק", "רחב", "גבוה"] },
+      { word: "impatience", correct: "חוסר סבלנות", wrong: ["רוגע / שלווה", "שמחה", "אהבה"] },
+      { word: "injustice", correct: "חוסר צדק", wrong: ["שוויון", "חוק", "אמת"] },
+      { word: "cruelty", correct: "אכזריות", wrong: ["נדיבות", "חמלה / רחמים", "רכות"] },
+      { word: "passionately", correct: "בתשוקה / בלהט", wrong: ["באדישות", "בשקט", "בעצלות"] },
+      { word: "exaggerated", correct: "מוגזם", wrong: ["מדויק", "מופחת", "רגיל"] },
+      { word: "gradually", correct: "בהדרגה", wrong: ["בבת אחת", "מהר", "לעולם לא"] },
+      { word: "irritated", correct: "עצבני / מרוגז", wrong: ["רגוע", "שמח", "עייף"] },
+      { word: "expertise", correct: "מומחיות", wrong: ["חוסר ידע", "טיפשות", "חולשה"] },
+      { word: "loss", correct: "אובדן / הפסד", wrong: ["ניצחון", "רווח", "מציאה"] },
+      { word: "occasionally", correct: "מדי פעם", wrong: ["תמיד", "אף פעם", "כל יום"] },
+      { word: "identical", correct: "זהה", wrong: ["שונה", "דומה", "הפוך"] },
+      { word: "failure", correct: "כישלון", wrong: ["הצלחה", "ניסיון", "תחרות"] },
+      { word: "to be puzzled", correct: "להיות מבולבל", wrong: ["להיות בטוח", "לשמוח", "לכעוס"] },
+      { word: "remarkable", correct: "יוצא דופן / ראוי לציון", wrong: ["רגיל", "משעמם", "גרוע"] },
+      { word: "self-possessed", correct: "שולט בעצמו / קר רוח", wrong: ["לחוץ / היסטרי", "משוגע", "פזיז"] },
+      { word: "serene", correct: "שלוו / רגוע", wrong: ["סוער", "רועש", "מתוח"] },
+      { word: "excruciating", correct: "מייסר / כואב מאוד", wrong: ["נעים", "קל / פשוט", "מצחיק"] },
+      { word: "stunned", correct: "המום", wrong: ["משועמם", "מוכן", "רגוע"] },
+      { word: "to insist", correct: "להתעקש", wrong: ["לוותר", "להסכים", "לשאול"] }
+    ];
+
+    const checkWrittenAnswer = (userInput, correctAnswer, isEnglishTarget) => {
+      if (!userInput) return false;
+      const cleanInput = userInput.trim().toLowerCase().replace(/["'״׳]/g, "");
+
+      if (isEnglishTarget) {
+        const baseCorrect = correctAnswer.trim().toLowerCase();
+        const cleanCorrect = baseCorrect.replace(/["'״׳]/g, "");
+        const possibleMatches = new Set([cleanCorrect]);
+        
+        if (cleanCorrect.startsWith("to ")) possibleMatches.add(cleanCorrect.substring(3).trim());
+        
+        const withoutParentheses = cleanCorrect.replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
+        possibleMatches.add(withoutParentheses);
+        
+        const insideParenthesesCleaned = cleanCorrect.replace(/[()]/g, '').replace(/\s+/g, ' ').trim();
+        possibleMatches.add(insideParenthesesCleaned);
+
+        if (cleanCorrect.includes(",")) {
+          const parts = cleanCorrect.split(",").map(p => p.trim());
+          parts.forEach(p => {
+            possibleMatches.add(p);
+            if (p.startsWith("to ")) possibleMatches.add(p.substring(3).trim());
+          });
+        }
+
+        return Array.from(possibleMatches).some(match => {
+          if (match.length <= 1) return false;
+          return cleanInput === match || cleanInput.replace("to ", "").trim() === match.replace("to ", "").trim();
+        });
+      } else {
+        const cleanHebrewInput = cleanInput.replace(/\s+/g, "");
+        const correctParts = correctAnswer
+          .split(/[/,，\s+או\s+]/)
+          .map(part => part.trim().toLowerCase().replace(/["'״׳]/g, ""))
+          .filter(part => part.length > 0);
+
+        return correctParts.some(part => {
+          const cleanPart = part.replace(/\s+/g, "");
+          if (cleanPart.length <= 1) return false;
+          return cleanHebrewInput === cleanPart || cleanHebrewInput.includes(cleanPart) || cleanPart.includes(cleanHebrewInput);
+        });
+      }
+    };
+
+    // ============================================================================
+    // INBAR's APP DATA & HELPERS
+    // ============================================================================
+
+    const INBAR_VOCABULARY = [
+      { en: "rigid", he: ["נוקשה"], mainHe: "נוקשה" },
+      { en: "grotesque(ly)", he: ["גרוטסקי", "מגוחך", "בצורה גרוטסקית", "מפלצתי"], mainHe: "גרוטסקי / מגוחך" },
+      { en: "frantically", he: ["בטירוף", "בבהלה"], mainHe: "בטירוף / בבהלה" },
+      { en: "carnage", he: ["טבח", "קטל"], mainHe: "טבח / קטל" },
+      { en: "affectionate(ly)", he: ["בחיבה", "אוהב", "מלא חיבה"], mainHe: "בחיבה / אוהב" },
+      { en: "pervaded", he: ["התפשט", "חדר לכל מקום", "חדר"], mainHe: "התפשט / חדר לכל מקום" },
+      { en: "hearth", he: ["אח", "קמין"], mainHe: "אח / קמין" },
+      { en: "polished", he: ["מלוטש", "מצוחצח"], mainHe: "מלוטש / מצוחצח" },
+      { en: "to treasure", he: ["להוקיר", "להעריך"], mainHe: "להוקיר / להעריך" },
+      { en: "rehearsed", he: ["מתורגל", "עשה חזרות", "חזר על"], mainHe: "מתורגל / עשה חזרות" },
+      { en: "unexpected", he: ["לא צפוי", "בלתי צפוי"], mainHe: "לא צפוי" },
+      { en: "depth", he: ["עומק"], mainHe: "עומק" },
+      { en: "shallow", he: ["רדוד"], mainHe: "רדוד" },
+      { en: "impatience", he: ["חוסר סבלנות", "אי סבלנות"], mainHe: "חוסר סבלנות" },
+      { en: "injustice", he: ["חוסר צדק", "אי צדק"], mainHe: "חוסר צדק" },
+      { en: "cruelty", he: ["אכזריות"], mainHe: "אכזריות" },
+      { en: "passionately", he: ["בתשוקה", "בלהט"], mainHe: "בתשוקה / בלהט" },
+      { en: "exaggerated", he: ["מוגזם"], mainHe: "מוגזם" },
+      { en: "gradually", he: ["בהדרגה"], mainHe: "בהדרגה" },
+      { en: "irritated", he: ["מעוצבן", "מגורה", "עצבני"], mainHe: "מעוצבן / מגורה" },
+      { en: "(area of) expertise", he: ["תחום מומחיות", "מומחיות"], mainHe: "תחום מומחיות" },
+      { en: "loss", he: ["אובדן", "הפסד"], mainHe: "אובדן / הפסד" },
+      { en: "occasion", he: ["אירוע", "הזדמנות"], mainHe: "אירוע / הזדמנות" },
+      { en: "identical", he: ["זהה"], mainHe: "זהה" },
+      { en: "failure", he: ["כישלון"], mainHe: "כישלון" },
+      { en: "to be puzzled", he: ["להיות מופתע", "להיות נבוך", "להיות מבולבל", "מבולבל", "מופתע", "נבוך"], mainHe: "להיות מופתע / מבולבל" },
+      { en: "remarkable", he: ["יוצא מן הכלל", "ראוי לציון", "מדהים"], mainHe: "יוצא מן הכלל / ראוי לציון" },
+      { en: "self-possessed", he: ["שולט בעצמו", "בטוח בעצמו", "קור רוח"], mainHe: "שולט בעצמו / בטוח בעצמו" },
+      { en: "serene", he: ["שליו", "רגוע"], mainHe: "שליו / רגוע" },
+      { en: "excruciating", he: ["מייסר"], mainHe: "מייסר" },
+      { en: "stunned, to stun", he: ["המום", "להמם", "המום להמם", "המום, להמם"], mainHe: "המום, להמם" },
+      { en: "to insist", he: ["להתעקש"], mainHe: "להתעקש" }
+    ];
+
+    const triggerConfetti = () => {
+      const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
+      for(let i=0; i<50; i++) {
+          const conf = document.createElement('div');
+          conf.style.position = 'fixed'; 
+          conf.style.width = '10px';
+          conf.style.height = '10px';
+          conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+          conf.style.left = Math.random() * 100 + 'vw';
+          conf.style.top = '-10px';
+          conf.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+          conf.style.zIndex = '9999';
+          conf.style.opacity = '0.8';
+          document.body.appendChild(conf);
+
+          const speed = 1 + Math.random() * 3;
+          let pos = -10;
+          let angle = Math.random() * Math.PI * 2;
+          
+          const fall = setInterval(() => {
+              pos += speed;
+              conf.style.top = pos + 'px';
+              conf.style.transform = `rotate(${pos}deg) translateX(${Math.sin(angle)*2}px)`;
+              angle += 0.1;
+              if (pos > window.innerHeight) {
+                  clearInterval(fall);
+                  conf.remove();
+              }
+          }, 16);
+      }
+    };
+
+
+    // ============================================================================
+    // COMPONENT 1: SHELLY'S APP
+    // ============================================================================
+
+    function ShellyApp({ onSwitchSite }) {
+      const [started, setStarted] = useState(false);
+      const [quizMode, setQuizMode] = useState('hebrew'); 
+      const [quizFormat, setQuizFormat] = useState('choice'); 
+      const [questions, setQuestions] = useState([]);
+      const [currentIndex, setCurrentIndex] = useState(0);
+      const [score, setScore] = useState(0);
+      const [selectedOption, setSelectedOption] = useState(null);
+      
+      const [writtenInput, setWrittenInput] = useState('');
+      const [writtenFeedback, setWrittenFeedback] = useState(null); 
+      
+      const [isFinished, setIsFinished] = useState(false);
+      const [showFeedback, setShowFeedback] = useState(false);
+      
+      const inputRef = useRef(null);
+
+      const initializeQuiz = () => {
+        const shuffledQuestions = shuffleArray(SHELLY_QUESTIONS).map((q) => {
+          let questionWord = "";
+          let correctOption = "";
+          let wrongOptions = [];
+          let wordLanguage = "en"; 
+
+          if (quizMode === 'hebrew') {
+            questionWord = q.word;
+            correctOption = q.correct;
+            wrongOptions = q.wrong;
+            wordLanguage = "en";
+          } else {
+            questionWord = q.correct;
+            correctOption = q.word;
+            wordLanguage = "he";
+            const englishPool = SHELLY_QUESTIONS.filter(item => item.word !== q.word).map(item => item.word);
+            wrongOptions = shuffleArray(englishPool).slice(0, 3);
+          }
+
+          const options = shuffleArray([
+            { text: correctOption, isCorrect: true },
+            ...wrongOptions.map(w => ({ text: w, isCorrect: false }))
+          ]);
+
+          return { word: questionWord, correctText: correctOption, options, wordLanguage };
+        });
+
+        setQuestions(shuffledQuestions);
+        setCurrentIndex(0);
+        setScore(0);
+        setSelectedOption(null);
+        setWrittenInput('');
+        setWrittenFeedback(null);
+        setIsFinished(false);
+        setShowFeedback(false);
+        setStarted(true);
+      };
+
+      useEffect(() => {
+        if (started && quizFormat === 'write' && !showFeedback && inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, [started, currentIndex, quizFormat, showFeedback]);
+
+      const handleBackToMenu = () => {
+        setStarted(false);
+        setIsFinished(false);
+        setWrittenInput('');
+        setWrittenFeedback(null);
+        setSelectedOption(null);
+        setShowFeedback(false);
+      };
+
+      const handleOptionClick = (option) => {
+        if (showFeedback) return;
+        setSelectedOption(option);
+        setShowFeedback(true);
+        
+        if (option.isCorrect) setScore(prev => prev + 1);
+
+        setTimeout(() => {
+          if (currentIndex < questions.length - 1) {
+            setCurrentIndex(prev => prev + 1);
+            setSelectedOption(null);
+            setShowFeedback(false);
+          } else {
+            setIsFinished(true);
+          }
+        }, 1200);
+      };
+
+      const handleWrittenSubmit = (e) => {
+        if (e) e.preventDefault();
+        if (showFeedback || !writtenInput.trim()) return;
+
+        const currentQ = questions[currentIndex];
+        const isCorrect = checkWrittenAnswer(writtenInput, currentQ.correctText, quizMode === 'english');
+
+        setShowFeedback(true);
+        if (isCorrect) {
+          setWrittenFeedback('correct');
+          setScore(prev => prev + 1);
+        } else {
+          setWrittenFeedback('incorrect');
+        }
+      };
+
+      const handleNextQuestion = () => {
+        setWrittenInput('');
+        setWrittenFeedback(null);
+        setShowFeedback(false);
+        
+        if (currentIndex < questions.length - 1) setCurrentIndex(prev => prev + 1);
+        else setIsFinished(true);
+      };
+
+      if (!started) {
+        return (
+          <div dir="rtl" className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 flex flex-col items-center justify-center p-4 font-sans">
             
-            <!-- Header -->
-            <div class="bg-indigo-600 text-white p-6 text-center">
-                <h1 class="text-3xl font-bold mb-2">אוצר מילים - The Giver</h1>
-                <p class="text-indigo-200">פרקים 15-18</p>
+            <button onClick={onSwitchSite} className="absolute top-4 left-4 bg-white/70 hover:bg-white text-purple-700 p-3 rounded-full shadow-sm flex items-center gap-2 transition-all font-bold">
+              <Home size={18} /> חזרה לפורטל הראשי
+            </button>
+
+            <div className="bg-white/80 backdrop-blur-sm p-6 md:p-8 rounded-3xl shadow-xl max-w-lg w-full text-center border-4 border-pink-200 relative overflow-hidden mt-8">
+              <div className="absolute top-4 right-4 text-pink-400 opacity-50"><Cat size={32} /></div>
+              <div className="absolute bottom-4 left-4 text-purple-400 opacity-50"><Cat size={32} /></div>
+              
+              <div className="flex justify-center mb-4">
+                <div className="bg-pink-100 p-4 rounded-full">
+                  <Sparkles className="text-pink-500 w-12 h-12" />
+                </div>
+              </div>
+              
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">מוכנה למבחן באנגלית? 📚</h1>
+              <p className="text-sm md:text-base text-gray-600 mb-6 leading-relaxed">
+                תרגול מקיף על כל 32 המילים של The Giver.<br/>
+                <span className="font-bold text-purple-600">פיצפץ ודפני 🐈🐈‍⬛</span> כאן כדי לעזור לך להצליח!
+              </p>
+
+              <div className="bg-purple-50/60 p-4 rounded-2xl border border-purple-100 mb-4 text-right">
+                <div className="flex items-center gap-2 text-purple-700 font-bold mb-3">
+                  <Languages size={18} />
+                  <span>בחרי את שפת התשובות במבחן:</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setQuizMode('hebrew')}
+                    className={`py-3 px-2 rounded-xl font-bold transition-all duration-200 text-sm ${quizMode === 'hebrew' ? 'bg-gradient-to-r from-pink-400 to-purple-500 text-white shadow-md scale-105' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}
+                  >
+                    תשובות בעברית 🇮🇱
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuizMode('english')}
+                    className={`py-3 px-2 rounded-xl font-bold transition-all duration-200 text-sm ${quizMode === 'english' ? 'bg-gradient-to-r from-pink-400 to-purple-500 text-white shadow-md scale-105' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}
+                  >
+                    תשובות באנגלית 🇬🇧
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-pink-50/60 p-4 rounded-2xl border border-pink-100 mb-6 text-right">
+                <div className="flex items-center gap-2 text-pink-700 font-bold mb-3">
+                  <PenTool size={18} />
+                  <span>בחרי את סוג השאלות במבחן:</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setQuizFormat('choice')}
+                    className={`py-3 px-2 rounded-xl font-bold transition-all duration-200 text-sm ${quizFormat === 'choice' ? 'bg-gradient-to-r from-pink-400 to-purple-500 text-white shadow-md scale-105' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}
+                  >
+                    שאלות אמריקאיות 🎯
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuizFormat('write')}
+                    className={`py-3 px-2 rounded-xl font-bold transition-all duration-200 text-sm ${quizFormat === 'write' ? 'bg-gradient-to-r from-pink-400 to-purple-500 text-white shadow-md scale-105' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}
+                  >
+                    לכתוב לבד ✏️
+                  </button>
+                </div>
+              </div>
+              
+              <button 
+                type="button"
+                onClick={initializeQuiz}
+                className="bg-gradient-to-r from-pink-400 to-purple-500 text-white text-xl font-bold py-4 px-10 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 flex items-center justify-center mx-auto gap-2"
+              >
+                <Heart size={24} /> מתחילים!
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      if (isFinished) {
+        return (
+          <div dir="rtl" className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 flex items-center justify-center p-4 font-sans">
+            <div className="bg-white/90 backdrop-blur-sm p-8 rounded-3xl shadow-xl max-w-lg w-full text-center border-4 border-purple-200">
+              <Trophy className="w-20 h-20 text-yellow-400 mx-auto mb-4" />
+              <h2 className="text-4xl font-bold text-gray-800 mb-2">כל הכבוד! 🎉</h2>
+              <p className="text-xl text-gray-600 mb-6">סיימת את התרגול בהצלחה!</p>
+              
+              <div className="bg-purple-50 rounded-2xl p-6 mb-8 shadow-inner">
+                <div className="text-5xl font-black text-purple-600 mb-2">
+                  {score} <span className="text-2xl text-purple-400">/ {questions.length}</span>
+                </div>
+                <p className="text-gray-500 font-medium">תשובות נכונות</p>
+                {score === questions.length ? (
+                  <p className="text-pink-500 font-bold mt-4 animate-bounce">ציון מושלם!! פיצפץ ודפני קופצים מאושר! 🐾👑🐈</p>
+                ) : score >= 28 ? (
+                  <p className="text-purple-600 font-bold mt-4">וואו! כמעט מושלם! את פשוט אלופה! 💖</p>
+                ) : (
+                  <p className="text-gray-600 font-medium mt-4">כל הכבוד על המאמץ! תרגול נוסף יביא אותך לציון מושלם! ⭐</p>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button type="button" onClick={initializeQuiz} className="bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition-all duration-200 flex items-center justify-center gap-2">
+                  <RefreshCw size={20} /> נסיון נוסף
+                </button>
+                <button type="button" onClick={handleBackToMenu} className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 px-8 rounded-full border border-gray-300 transition-all duration-200 flex items-center justify-center gap-2">
+                  <ArrowLeft size={20} /> חזרה אחורה
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      const currentQ = questions[currentIndex];
+
+      return (
+        <div dir="rtl" className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex flex-col items-center justify-center p-4 font-sans">
+          <div className="max-w-2xl w-full">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 px-2">
+              <button type="button" onClick={handleBackToMenu} className="flex items-center gap-2 text-purple-600 hover:text-purple-800 bg-white border border-purple-200 hover:border-purple-300 px-4 py-2 rounded-full font-bold shadow-sm transition-all duration-150 self-start sm:self-auto text-sm">
+                <ArrowLeft size={16} /> חזרה לתפריט
+              </button>
+              
+              <div className="flex gap-3 justify-end w-full sm:w-auto">
+                <div className="text-purple-600 font-bold bg-purple-100 px-4 py-2 rounded-full shadow-sm flex items-center gap-2 text-sm">
+                  <Star size={16} /> שאלה {currentIndex + 1} מתוך {questions.length}
+                </div>
+                <div className="text-pink-600 font-bold bg-pink-100 px-4 py-2 rounded-full shadow-sm flex items-center gap-2 text-sm">
+                  <Heart size={16} /> ציון: {score}
+                </div>
+              </div>
             </div>
 
-            <div class="p-6 md:p-8">
-                <!-- START SCREEN -->
-                <div id="start-screen" class="text-center fade-in">
-                    <h2 class="text-2xl font-semibold mb-6 text-gray-700">בחרי את מצב המשחק:</h2>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <button onclick="startGame('mc')" class="btn-hover-effect flex flex-col items-center justify-center p-6 bg-blue-50 border-2 border-blue-200 rounded-xl text-blue-700 hover:bg-blue-100 focus:outline-none focus:ring-4 focus:ring-blue-300">
-                            <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-                            <span class="text-xl font-bold">אמריקאי</span>
-                            <span class="text-sm mt-2 text-blue-600/80">בחירה מתוך 4 תשובות</span>
-                        </button>
-                        
-                        <button onclick="startGame('typing')" class="btn-hover-effect flex flex-col items-center justify-center p-6 bg-purple-50 border-2 border-purple-200 rounded-xl text-purple-700 hover:bg-purple-100 focus:outline-none focus:ring-4 focus:ring-purple-300">
-                            <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                            <span class="text-xl font-bold">כתיבה חופשית</span>
-                            <span class="text-sm mt-2 text-purple-600/80">לכתוב את התרגום בעצמך</span>
-                        </button>
-                    </div>
+            <div className="bg-white p-6 md:p-8 rounded-3xl shadow-lg border-b-8 border-purple-200 mb-6 relative">
+              <p className="text-gray-500 text-center mb-2 font-medium">מה הפירוש של המילה:</p>
+              <div className="text-center bg-gray-50 rounded-2xl py-8 px-4 mb-6 shadow-inner border border-gray-100" dir={currentQ.wordLanguage === "en" ? "ltr" : "rtl"}>
+                <h2 className="text-3xl md:text-5xl font-black text-indigo-900 tracking-wide">{currentQ.word}</h2>
+              </div>
+
+              {quizFormat === 'choice' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {currentQ.options.map((option, idx) => {
+                    let btnStyle = "bg-white border-2 border-gray-200 hover:border-purple-400 hover:bg-purple-50 text-gray-700";
+                    if (showFeedback) {
+                      if (option.isCorrect) btnStyle = "bg-green-100 border-2 border-green-500 text-green-800 scale-105 shadow-md";
+                      else if (selectedOption === option && !option.isCorrect) btnStyle = "bg-red-100 border-2 border-red-500 text-red-800 opacity-70";
+                      else btnStyle = "bg-gray-50 border-2 border-gray-100 text-gray-400 opacity-50";
+                    }
+                    return (
+                      <button key={idx} type="button" onClick={() => handleOptionClick(option)} disabled={showFeedback} dir={quizMode === 'english' ? 'ltr' : 'rtl'} className={`p-4 rounded-2xl font-bold text-base md:text-lg transition-all duration-200 ease-in-out ${btnStyle}`}>
+                        {option.text}
+                      </button>
+                    );
+                  })}
                 </div>
-
-                <!-- GAME SCREEN -->
-                <div id="game-screen" class="hidden fade-in">
-                    <!-- Status Bar -->
-                    <div class="flex justify-between items-center mb-6 text-sm font-medium text-gray-500 bg-gray-50 p-3 rounded-lg">
-                        <div class="flex items-center gap-2">
-                            <span class="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md" id="round-display">סבב 1</span>
-                        </div>
-                        <div>נשארו בסבב: <span id="words-left" class="font-bold text-gray-700">0</span></div>
-                        <div class="text-green-600">הצלחות: <span id="success-count" class="font-bold">0</span></div>
+              ) : (
+                <div className="space-y-4">
+                  <form onSubmit={handleWrittenSubmit} className="space-y-4">
+                    <div className="relative">
+                      <input
+                        ref={inputRef} type="text" value={writtenInput} onChange={(e) => setWrittenInput(e.target.value)} disabled={showFeedback}
+                        placeholder={quizMode === 'english' ? 'הקלידי את הפירוש באנגלית...' : 'הקלידי את הפירוש בעברית...'}
+                        dir={quizMode === 'english' ? 'ltr' : 'rtl'}
+                        className={`w-full p-4 pr-4 rounded-2xl border-2 font-bold text-lg text-center transition-all duration-200 focus:outline-none focus:ring-4 ${showFeedback ? 'bg-gray-50 text-gray-500 border-gray-200' : 'border-purple-200 focus:border-purple-500 focus:ring-purple-200 bg-white text-gray-800'}`}
+                      />
                     </div>
+                    {!showFeedback && (
+                      <button type="submit" disabled={!writtenInput.trim()} className={`w-full py-4 rounded-2xl font-bold text-lg text-white shadow-md transition-all duration-200 ${writtenInput.trim() ? 'bg-purple-600 hover:bg-purple-700 hover:shadow-lg' : 'bg-gray-300 cursor-not-allowed'}`}>
+                        בדיקת תשובה ✨
+                      </button>
+                    )}
+                  </form>
 
-                    <!-- The Word -->
-                    <div class="text-center mb-8">
-                        <h3 class="text-gray-500 text-sm mb-1 uppercase tracking-wider font-semibold">איך אומרים בעברית?</h3>
-                        <div id="current-word-display" class="text-4xl md:text-5xl font-extrabold text-indigo-900 py-4" dir="ltr">
-                            Word
-                        </div>
+                  {showFeedback && (
+                    <div className={`p-4 rounded-2xl border-2 animate-fadeIn transition-all duration-300 ${writtenFeedback === 'correct' ? 'bg-green-50 border-green-300 text-green-900' : 'bg-red-50 border-red-200 text-red-900'}`}>
+                      <div className="flex items-center gap-3 mb-2 justify-center font-bold text-lg md:text-xl">
+                        {writtenFeedback === 'correct' ? (
+                          <><CheckCircle className="text-green-600 shrink-0" /><span>נכון מאוד! כל הכבוד! 🎉</span></>
+                        ) : (
+                          <><XCircle className="text-red-500 shrink-0" /><span>לא מדויק, לא נורא! 🐾</span></>
+                        )}
+                      </div>
+                      <div className="text-center mt-3 bg-white/70 p-3 rounded-xl border border-white/50">
+                        <p className="text-xs md:text-sm text-gray-500 mb-1">התשובה הנכונה ביותר:</p>
+                        <p className="text-lg md:text-xl font-extrabold text-indigo-900 tracking-wide" dir={quizMode === 'english' ? 'ltr' : 'rtl'}>{currentQ.correctText}</p>
+                      </div>
+                      <button type="button" onClick={handleNextQuestion} className="mt-4 w-full bg-gradient-to-r from-pink-400 to-purple-500 hover:from-pink-500 hover:to-purple-600 text-white font-bold py-3 rounded-xl shadow-md transition-all duration-200">
+                        המשך לשאלה הבאה 👍
+                      </button>
                     </div>
-
-                    <!-- Input Area -->
-                    <div id="input-area" class="min-h-[160px]">
-                        <!-- Multiple Choice Options (Injected via JS) -->
-                        <div id="mc-options" class="grid grid-cols-1 md:grid-cols-2 gap-3 hidden">
-                            <!-- Buttons go here -->
-                        </div>
-
-                        <!-- Typing Input -->
-                        <div id="typing-input-container" class="hidden flex flex-col items-center">
-                            <input type="text" id="typing-input" autocomplete="off" placeholder="הקלידי תרגום לעברית..." 
-                                class="w-full md:w-2/3 p-4 text-center text-xl border-2 border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-colors shadow-sm">
-                            <button onclick="submitTyping()" id="typing-submit-btn" class="mt-4 bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-300 transition-colors btn-hover-effect w-full md:w-2/3 shadow-md">
-                                בדוק תשובה
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Feedback Area -->
-                    <div id="feedback-area" class="mt-6 text-center h-12 flex flex-col justify-center items-center font-bold text-lg rounded-lg transition-all">
-                        <!-- Messages go here -->
-                    </div>
-
-                    <!-- Next Button Container -->
-                    <div id="next-action-container" class="mt-4 hidden flex flex-col md:flex-row items-center justify-center gap-3 fade-in w-full px-4">
-                        <button id="override-btn" onclick="overrideAsCorrect()" class="bg-yellow-500 text-white font-bold py-3 px-6 rounded-xl hover:bg-yellow-600 focus:ring-4 focus:ring-yellow-300 transition-colors btn-hover-effect shadow-md text-lg w-full md:w-auto hidden">
-                            זה מה שכתבתי (צדקתי) ✋
-                        </button>
-                        <button id="next-btn" onclick="moveToNextWord()" class="bg-gray-800 text-white font-bold py-3 px-8 rounded-xl hover:bg-gray-900 focus:ring-4 focus:ring-gray-300 transition-colors btn-hover-effect shadow-md text-lg w-full md:w-auto">
-                            המשך למילה הבאה ➔
-                        </button>
-                    </div>
+                  )}
                 </div>
-
-                <!-- ROUND END SCREEN -->
-                <div id="round-end-screen" class="hidden fade-in text-center py-8">
-                    <div class="w-20 h-20 mx-auto bg-yellow-100 rounded-full flex items-center justify-center mb-4 text-yellow-500">
-                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                    </div>
-                    <h2 class="text-3xl font-bold text-gray-800 mb-2">סוף סבב <span id="completed-round-num">1</span></h2>
-                    <p class="text-gray-600 mb-6 text-lg">כל הכבוד! יש עדיין מילים שצריך לתרגל.<br>בואי ננסה שוב את המילים שלא הצלחת.</p>
-                    <button onclick="startNextRound()" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-indigo-700 btn-hover-effect shadow-md text-lg">
-                        התחל סבב הבא
-                    </button>
-                </div>
-
-                <!-- VICTORY SCREEN -->
-                <div id="victory-screen" class="hidden fade-in text-center py-8">
-                    <div class="w-24 h-24 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-4 text-green-500">
-                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </div>
-                    <h2 class="text-3xl font-bold text-gray-800 mb-2">אלופה! 🎉</h2>
-                    <p class="text-gray-600 mb-6 text-lg">הצלחת לתרגם את כל המילים בהצלחה מרובה!</p>
-                    <button onclick="resetGame()" class="bg-green-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-green-700 btn-hover-effect shadow-md text-lg">
-                        שחקי שוב מההתחלה
-                    </button>
-                </div>
-
+              )}
             </div>
+
+            <div className="text-center text-gray-400 text-sm flex items-center justify-center gap-2">
+               פיצפץ ודפני מנמנמים ומאחלים לך 100 עגול! <Cat size={16} />
+            </div>
+          </div>
         </div>
-    </div>
+      );
+    }
 
-    <script>
-        // Vocabulary Database
-        const vocabulary = [
-            { en: "rigid", he: ["נוקשה"], mainHe: "נוקשה" },
-            { en: "grotesque(ly)", he: ["גרוטסקי", "מגוחך", "בצורה גרוטסקית", "מפלצתי"], mainHe: "גרוטסקי / מגוחך" },
-            { en: "frantically", he: ["בטירוף", "בבהלה"], mainHe: "בטירוף / בבהלה" },
-            { en: "carnage", he: ["טבח", "קטל"], mainHe: "טבח / קטל" },
-            { en: "affectionate(ly)", he: ["בחיבה", "אוהב", "מלא חיבה"], mainHe: "בחיבה / אוהב" },
-            { en: "pervaded", he: ["התפשט", "חדר לכל מקום", "חדר"], mainHe: "התפשט / חדר לכל מקום" },
-            { en: "hearth", he: ["אח", "קמין"], mainHe: "אח / קמין" },
-            { en: "polished", he: ["מלוטש", "מצוחצח"], mainHe: "מלוטש / מצוחצח" },
-            { en: "to treasure", he: ["להוקיר", "להעריך"], mainHe: "להוקיר / להעריך" },
-            { en: "rehearsed", he: ["מתורגל", "עשה חזרות", "חזר על"], mainHe: "מתורגל / עשה חזרות" },
-            { en: "unexpected", he: ["לא צפוי", "בלתי צפוי"], mainHe: "לא צפוי" },
-            { en: "depth", he: ["עומק"], mainHe: "עומק" },
-            { en: "shallow", he: ["רדוד"], mainHe: "רדוד" },
-            { en: "impatience", he: ["חוסר סבלנות", "אי סבלנות"], mainHe: "חוסר סבלנות" },
-            { en: "injustice", he: ["חוסר צדק", "אי צדק"], mainHe: "חוסר צדק" },
-            { en: "cruelty", he: ["אכזריות"], mainHe: "אכזריות" },
-            { en: "passionately", he: ["בתשוקה", "בלהט"], mainHe: "בתשוקה / בלהט" },
-            { en: "exaggerated", he: ["מוגזם"], mainHe: "מוגזם" },
-            { en: "gradually", he: ["בהדרגה"], mainHe: "בהדרגה" },
-            { en: "irritated", he: ["מעוצבן", "מגורה", "עצבני"], mainHe: "מעוצבן / מגורה" },
-            { en: "(area of) expertise", he: ["תחום מומחיות", "מומחיות"], mainHe: "תחום מומחיות" },
-            { en: "loss", he: ["אובדן", "הפסד"], mainHe: "אובדן / הפסד" },
-            { en: "occasion", he: ["אירוע", "הזדמנות"], mainHe: "אירוע / הזדמנות" },
-            { en: "identical", he: ["זהה"], mainHe: "זהה" },
-            { en: "failure", he: ["כישלון"], mainHe: "כישלון" },
-            { en: "to be puzzled", he: ["להיות מופתע", "להיות נבוך", "להיות מבולבל", "מבולבל", "מופתע", "נבוך"], mainHe: "להיות מופתע / מבולבל" },
-            { en: "remarkable", he: ["יוצא מן הכלל", "ראוי לציון", "מדהים"], mainHe: "יוצא מן הכלל / ראוי לציון" },
-            { en: "self-possessed", he: ["שולט בעצמו", "בטוח בעצמו", "קור רוח"], mainHe: "שולט בעצמו / בטוח בעצמו" },
-            { en: "serene", he: ["שליו", "רגוע"], mainHe: "שליו / רגוע" },
-            { en: "excruciating", he: ["מייסר"], mainHe: "מייסר" },
-            { en: "stunned, to stun", he: ["המום", "להמם", "המום להמם", "המום, להמם"], mainHe: "המום, להמם" },
-            { en: "to insist", he: ["להתעקש"], mainHe: "להתעקש" }
-        ];
+    // ============================================================================
+    // COMPONENT 2: INBAR'S APP
+    // ============================================================================
 
-        let currentMode = 'mc'; // 'mc' or 'typing'
-        let allWords = [...vocabulary];
-        let currentRoundWords = [];
-        let failedWordsThisRound = [];
-        let successfulWordsCount = 0;
-        let roundNumber = 1;
+    function InbarApp({ onSwitchSite }) {
+      const [screen, setScreen] = useState('start'); 
+      const [mode, setMode] = useState('mc'); 
+      const [roundNumber, setRoundNumber] = useState(1);
+      const [currentRoundWords, setCurrentRoundWords] = useState([]);
+      const [failedWordsThisRound, setFailedWordsThisRound] = useState([]);
+      const [successfulWordsCount, setSuccessfulWordsCount] = useState(0);
+      const [currentWordIndex, setCurrentWordIndex] = useState(0);
+      
+      const [mcOptions, setMcOptions] = useState([]);
+      const [typingInput, setTypingInput] = useState('');
+      
+      const [attemptsOnCurrentWord, setAttemptsOnCurrentWord] = useState(0);
+      const [isWaitingForNext, setIsWaitingForNext] = useState(false);
+      const [feedback, setFeedback] = useState(null); 
+      
+      const [shakeKey, setShakeKey] = useState(0);
+      const [wrongBtnIndex, setWrongBtnIndex] = useState(-1);
+      const [correctBtnIndex, setCorrectBtnIndex] = useState(-1);
+      const [typingClass, setTypingClass] = useState('');
+      const typingInputRef = useRef(null);
+
+      const startGame = (selectedMode) => {
+        setMode(selectedMode);
+        setSuccessfulWordsCount(0);
+        setRoundNumber(1);
+        startRound(INBAR_VOCABULARY);
+      };
+
+      const startNextRound = () => {
+        setRoundNumber(prev => prev + 1);
+        startRound(failedWordsThisRound);
+      };
+
+      const startRound = (wordsArray) => {
+        const shuffled = shuffleArray([...wordsArray]);
+        setCurrentRoundWords(shuffled);
+        setFailedWordsThisRound([]);
+        setCurrentWordIndex(0);
+        loadWord(0, shuffled);
+        setScreen('game');
+      };
+
+      const loadWord = (index, roundWords) => {
+        if (index >= roundWords.length) {
+          handleEndOfRound();
+          return;
+        }
         
-        let currentWordIndex = 0;
-        let currentWord = null;
-        let attemptsOnCurrentWord = 0;
-        let isWaitingForNext = false;
-
-        // Elements
-        const screens = {
-            start: document.getElementById('start-screen'),
-            game: document.getElementById('game-screen'),
-            roundEnd: document.getElementById('round-end-screen'),
-            victory: document.getElementById('victory-screen')
-        };
+        setIsWaitingForNext(false);
+        setAttemptsOnCurrentWord(0);
+        setFeedback(null);
+        setCorrectBtnIndex(-1);
+        setWrongBtnIndex(-1);
+        setTypingClass('');
+        setTypingInput('');
+        setShakeKey(0);
         
-        const ui = {
-            roundDisplay: document.getElementById('round-display'),
-            wordsLeft: document.getElementById('words-left'),
-            successCount: document.getElementById('success-count'),
-            wordDisplay: document.getElementById('current-word-display'),
-            mcOptions: document.getElementById('mc-options'),
-            typingContainer: document.getElementById('typing-input-container'),
-            typingInput: document.getElementById('typing-input'),
-            feedbackArea: document.getElementById('feedback-area'),
-            completedRoundNum: document.getElementById('completed-round-num'),
-            nextActionContainer: document.getElementById('next-action-container'),
-            nextBtn: document.getElementById('next-btn'),
-            overrideBtn: document.getElementById('override-btn')
-        };
-
-        function showScreen(screenName) {
-            Object.values(screens).forEach(s => s.classList.add('hidden'));
-            screens[screenName].classList.remove('hidden');
+        const wordObj = roundWords[index];
+        if (mode === 'mc') {
+          let incorrect = INBAR_VOCABULARY.filter(w => w.en !== wordObj.en);
+          incorrect = shuffleArray(incorrect).slice(0, 3);
+          setMcOptions(shuffleArray([wordObj, ...incorrect]));
+        } else {
+          setTimeout(() => typingInputRef.current?.focus(), 50);
         }
+      };
 
-        // Shuffle array using Fisher-Yates
-        function shuffle(array) {
-            let currentIndex = array.length, randomIndex;
-            while (currentIndex != 0) {
-                randomIndex = Math.floor(Math.random() * currentIndex);
-                currentIndex--;
-                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
-            }
-            return array;
-        }
-
-        function startGame(mode) {
-            currentMode = mode;
-            allWords = [...vocabulary];
-            successfulWordsCount = 0;
-            roundNumber = 1;
-            
-            // Set up UI for chosen mode
-            if (mode === 'mc') {
-                ui.mcOptions.classList.remove('hidden');
-                ui.typingContainer.classList.add('hidden');
-            } else {
-                ui.mcOptions.classList.add('hidden');
-                ui.typingContainer.classList.remove('hidden');
-            }
-
-            // Bind Enter key for typing
-            ui.typingInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    if (isWaitingForNext) return; // Prevent double submit
-                    submitTyping();
-                }
-            });
-
-            startRound(allWords);
-            showScreen('game');
-        }
-
-        function startNextRound() {
-            roundNumber++;
-            startRound(failedWordsThisRound);
-        }
-
-        function startRound(wordsArray) {
-            currentRoundWords = shuffle([...wordsArray]);
-            failedWordsThisRound = [];
-            currentWordIndex = 0;
-            
-            ui.roundDisplay.innerText = `סבב ${roundNumber}`;
-            updateStatsBar();
-            loadWord();
-            showScreen('game');
-        }
-
-        function updateStatsBar() {
-            ui.wordsLeft.innerText = currentRoundWords.length - currentWordIndex;
-            ui.successCount.innerText = successfulWordsCount;
-        }
-
-        function loadWord() {
-            if (currentWordIndex >= currentRoundWords.length) {
-                handleEndOfRound();
-                return;
-            }
-
-            isWaitingForNext = false;
-            currentWord = currentRoundWords[currentWordIndex];
-            attemptsOnCurrentWord = 0;
-            
-            updateStatsBar();
-            
-            // Render English Word
-            ui.wordDisplay.innerText = currentWord.en;
-            ui.wordDisplay.classList.remove('shake');
-            clearFeedback();
-            ui.nextActionContainer.classList.add('hidden'); // Hide next button initially
-            ui.overrideBtn.classList.add('hidden');
-            ui.nextBtn.classList.remove('hidden');
-
-            if (currentMode === 'mc') {
-                renderMultipleChoice(currentWord);
-            } else {
-                ui.typingInput.value = '';
-                ui.typingInput.focus();
-                ui.typingInput.disabled = false;
-                document.getElementById('typing-submit-btn').disabled = false;
+      const submitTyping = () => {
+        if (isWaitingForNext) return;
+        const userText = typingInput.trim().toLowerCase();
+        if (!userText) return;
+        
+        const wordObj = currentRoundWords[currentWordIndex];
+        let isCorrect = false;
+        for (let validHe of wordObj.he) {
+            if (userText === validHe.trim().toLowerCase()) {
+                isCorrect = true;
+                break;
             }
         }
+        handleAnswer(isCorrect, -1, true);
+      };
 
-        function renderMultipleChoice(correctWordObj) {
-            ui.mcOptions.innerHTML = '';
-            
-            // Get 3 random incorrect answers from the FULL vocabulary
-            let incorrectOptions = vocabulary.filter(w => w.en !== correctWordObj.en);
-            incorrectOptions = shuffle(incorrectOptions).slice(0, 3);
-            
-            let options = [correctWordObj, ...incorrectOptions];
-            options = shuffle(options);
+      const handleAnswer = (isCorrect, btnIndex = -1, isTyping = false) => {
+        if (isWaitingForNext) return;
+        const currentWord = currentRoundWords[currentWordIndex];
 
-            options.forEach(opt => {
-                const btn = document.createElement('button');
-                btn.className = "p-4 border-2 border-gray-200 rounded-xl text-lg font-medium hover:bg-indigo-50 hover:border-indigo-300 transition-colors focus:outline-none";
-                btn.innerText = opt.mainHe;
-                btn.onclick = () => handleAnswer(opt.en === correctWordObj.en, btn);
-                ui.mcOptions.appendChild(btn);
-            });
-        }
+        if (isCorrect) {
+          setIsWaitingForNext(true);
+          setFeedback({ isCorrect: true, text: "מעולה! תשובה נכונה." });
+          
+          if (isTyping) setTypingClass('correct-anim');
+          else setCorrectBtnIndex(btnIndex);
 
-        function submitTyping() {
-            if(isWaitingForNext) return;
-            const userText = ui.typingInput.value.trim().toLowerCase();
-            if (!userText) return;
-            
-            // Check if user input matches any of the valid Hebrew translations
-            let isCorrect = false;
-            for (let validHe of currentWord.he) {
-                if (userText === validHe.trim().toLowerCase()) {
-                    isCorrect = true;
-                    break;
-                }
+          if (attemptsOnCurrentWord === 0) {
+            setSuccessfulWordsCount(prev => prev + 1);
+          } else {
+            if (!failedWordsThisRound.some(w => w.en === currentWord.en)) {
+              setFailedWordsThisRound(prev => [...prev, currentWord]);
             }
-            
-            handleAnswer(isCorrect, ui.typingInput);
-        }
+          }
+        } else {
+          const newAttempts = attemptsOnCurrentWord + 1;
+          setAttemptsOnCurrentWord(newAttempts);
+          setShakeKey(prev => prev + 1); 
 
-        function handleAnswer(isCorrect, elementObj) {
-            if (isWaitingForNext) return;
-            
-            if (isCorrect) {
-                isWaitingForNext = true;
-                showFeedback(true, "מעולה! תשובה נכונה.");
+          if (isTyping) {
+            setTypingClass('wrong-anim');
+            setTimeout(() => setTypingClass(''), 500);
+          } else {
+            setWrongBtnIndex(btnIndex);
+            setTimeout(() => setWrongBtnIndex(-1), 500);
+          }
+
+          if (newAttempts === 1) {
+            setFeedback({ isCorrect: false, text: "טעות, נסי שוב!" });
+            if (!failedWordsThisRound.some(w => w.en === currentWord.en)) {
+              setFailedWordsThisRound(prev => [...prev, currentWord]);
+            }
+            if (isTyping) {
+              setTypingInput('');
+              setTimeout(() => typingInputRef.current?.focus(), 50);
+            }
+          } else {
+            setIsWaitingForNext(true);
+            setFeedback({ isCorrect: false, text: `התשובה הנכונה היא: ${currentWord.mainHe}` });
+            if (!failedWordsThisRound.some(w => w.en === currentWord.en)) {
+              setFailedWordsThisRound(prev => [...prev, currentWord]);
+            }
+          }
+        }
+      };
+
+      const overrideAsCorrect = () => {
+        const currentWord = currentRoundWords[currentWordIndex];
+        setFailedWordsThisRound(prev => prev.filter(w => w.en !== currentWord.en));
+        setSuccessfulWordsCount(prev => prev + 1);
+        moveToNextWord();
+      };
+
+      const moveToNextWord = () => {
+        const nextIndex = currentWordIndex + 1;
+        setCurrentWordIndex(nextIndex);
+        loadWord(nextIndex, currentRoundWords);
+      };
+
+      const handleEndOfRound = () => {
+        setTimeout(() => {
+          setScreen(prevScreen => {
+            if (failedWordsThisRound.length > 0) return 'roundEnd';
+            triggerConfetti();
+            return 'victory';
+          });
+        }, 0);
+      };
+
+      const resetGame = () => setScreen('start');
+
+      return (
+        <div className="flex-grow flex items-center justify-center p-4 bg-gray-100 min-h-screen text-gray-800" dir="rtl">
+          
+          {screen === 'start' && (
+            <button onClick={onSwitchSite} className="absolute top-4 left-4 bg-white hover:bg-gray-50 text-indigo-700 p-3 rounded-full shadow-sm flex items-center gap-2 transition-all font-bold border border-gray-200 z-10">
+              <Home size={18} /> חזרה לפורטל הראשי
+            </button>
+          )}
+
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden relative border border-gray-100 inbar-fade-in">
+            <div className="bg-indigo-600 text-white p-6 text-center">
+              <h1 className="text-3xl font-bold mb-2">אוצר מילים - The Giver</h1>
+              <p className="text-indigo-200">פרקים 15-18</p>
+            </div>
+
+            <div className="p-6 md:p-8">
+              {screen === 'start' && (
+                <div className="text-center inbar-fade-in">
+                  <h2 className="text-2xl font-semibold mb-6 text-gray-700">בחרי את מצב המשחק:</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button onClick={() => startGame('mc')} className="inbar-btn-hover-effect flex flex-col items-center justify-center p-6 bg-blue-50 border-2 border-blue-200 rounded-xl text-blue-700 hover:bg-blue-100 focus:outline-none focus:ring-4 focus:ring-blue-300">
+                      <LayoutTemplate className="w-12 h-12 mb-3" />
+                      <span className="text-xl font-bold">אמריקאי</span>
+                      <span className="text-sm mt-2 text-blue-600/80">בחירה מתוך 4 תשובות</span>
+                    </button>
+                    <button onClick={() => startGame('typing')} className="inbar-btn-hover-effect flex flex-col items-center justify-center p-6 bg-purple-50 border-2 border-purple-200 rounded-xl text-purple-700 hover:bg-purple-100 focus:outline-none focus:ring-4 focus:ring-purple-300">
+                      <PenTool className="w-12 h-12 mb-3" />
+                      <span className="text-xl font-bold">כתיבה חופשית</span>
+                      <span className="text-sm mt-2 text-purple-600/80">לכתוב את התרגום בעצמך</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {screen === 'game' && currentRoundWords[currentWordIndex] && (
+                <div className="inbar-fade-in">
+                  <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 px-2">
+                    <button onClick={resetGame} className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 bg-white border border-indigo-200 hover:border-indigo-300 px-4 py-2 rounded-full font-bold shadow-sm transition-all duration-150 self-start sm:self-auto text-sm">
+                      <ArrowLeft size={16} /> חזרה לתפריט
+                    </button>
+                    <div className="flex justify-between items-center w-full sm:w-auto gap-4 text-sm font-medium text-gray-500 bg-gray-50 p-3 rounded-lg flex-grow sm:flex-grow-0">
+                      <div className="flex items-center gap-2">
+                        <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md">סבב {roundNumber}</span>
+                      </div>
+                      <div>נשארו: <span className="font-bold text-gray-700">{currentRoundWords.length - currentWordIndex}</span></div>
+                      <div className="text-green-600">הצלחות: <span className="font-bold">{successfulWordsCount}</span></div>
+                    </div>
+                  </div>
+
+                  <div className="text-center mb-8">
+                    <h3 className="text-gray-500 text-sm mb-1 uppercase tracking-wider font-semibold">איך אומרים בעברית?</h3>
+                    <div key={shakeKey} className={`text-4xl md:text-5xl font-extrabold text-indigo-900 py-4 ${shakeKey > 0 ? 'inbar-shake' : ''}`} dir="ltr">
+                      {currentRoundWords[currentWordIndex].en}
+                    </div>
+                  </div>
+
+                  <div className="min-h-[160px]">
+                    {mode === 'mc' ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {mcOptions.map((opt, i) => (
+                          <button 
+                            key={i} 
+                            disabled={isWaitingForNext}
+                            onClick={() => handleAnswer(opt.en === currentRoundWords[currentWordIndex].en, i, false)}
+                            className={`p-4 border-2 border-gray-200 rounded-xl text-lg font-medium hover:bg-indigo-50 hover:border-indigo-300 transition-colors focus:outline-none ${correctBtnIndex === i ? 'correct-anim' : wrongBtnIndex === i ? 'wrong-anim' : ''}`}
+                          >
+                            {opt.mainHe}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center">
+                        <input 
+                          ref={typingInputRef}
+                          type="text" 
+                          value={typingInput}
+                          onChange={e => setTypingInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') submitTyping() }}
+                          disabled={isWaitingForNext}
+                          placeholder="הקלידי תרגום לעברית..."
+                          className={`w-full md:w-2/3 p-4 text-center text-xl border-2 border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-colors shadow-sm ${typingClass}`}
+                        />
+                        <button 
+                          onClick={submitTyping}
+                          disabled={isWaitingForNext}
+                          className="mt-4 bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-300 transition-colors inbar-btn-hover-effect w-full md:w-2/3 shadow-md"
+                        >
+                          בדוק תשובה
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={`mt-6 text-center h-12 flex flex-col justify-center items-center font-bold text-lg rounded-lg transition-all p-2 ${feedback ? (feedback.isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700') : ''}`}>
+                    {feedback ? feedback.text : ''}
+                  </div>
+
+                  {isWaitingForNext && (
+                    <div className="mt-4 flex flex-col md:flex-row items-center justify-center gap-3 inbar-fade-in w-full px-4">
+                      {mode === 'typing' && !feedback.isCorrect && (
+                        <button onClick={overrideAsCorrect} className="bg-yellow-500 text-white font-bold py-3 px-6 rounded-xl hover:bg-yellow-600 focus:ring-4 focus:ring-yellow-300 transition-colors inbar-btn-hover-effect shadow-md text-lg w-full md:w-auto">
+                          זה מה שכתבתי (צדקתי) ✋
+                        </button>
+                      )}
+                      <button onClick={moveToNextWord} autoFocus className="bg-gray-800 text-white font-bold py-3 px-8 rounded-xl hover:bg-gray-900 focus:ring-4 focus:ring-gray-300 transition-colors inbar-btn-hover-effect shadow-md text-lg w-full md:w-auto">
+                        המשך למילה הבאה ➔
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {screen === 'roundEnd' && (
+                <div className="text-center py-8 inbar-fade-in">
+                  <div className="w-20 h-20 mx-auto bg-yellow-100 rounded-full flex items-center justify-center mb-4 text-yellow-500">
+                    <RefreshCw className="w-10 h-10" />
+                  </div>
+                  <h2 className="text-3xl font-bold text-gray-800 mb-2">סוף סבב {roundNumber}</h2>
+                  <p className="text-gray-600 mb-6 text-lg">כל הכבוד! יש עדיין מילים שצריך לתרגל.<br/>בואי ננסה שוב את המילים שלא הצלחת.</p>
+                  <button onClick={startNextRound} className="bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-indigo-700 inbar-btn-hover-effect shadow-md text-lg">
+                    התחל סבב הבא
+                  </button>
+                </div>
+              )}
+
+              {screen === 'victory' && (
+                <div className="text-center py-8 inbar-fade-in">
+                  <div className="w-24 h-24 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-4 text-green-500">
+                    <CheckCircle className="w-12 h-12" />
+                  </div>
+                  <h2 className="text-3xl font-bold text-gray-800 mb-2">אלופה! 🎉</h2>
+                  <p className="text-gray-600 mb-6 text-lg">הצלחת לתרגם את כל המילים בהצלחה מרובה!</p>
+                  <button onClick={resetGame} className="bg-green-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-green-700 inbar-btn-hover-effect shadow-md text-lg">
+                    שחקי שוב מההתחלה
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ============================================================================
+    // COMPONENT 3: MAIN APP (THE PORTAL)
+    // ============================================================================
+
+    function App() {
+      const [selectedSite, setSelectedSite] = useState(null); 
+
+      return (
+        <React.Fragment>
+          {selectedSite === 'inbar' && <InbarApp onSwitchSite={() => setSelectedSite(null)} />}
+          {selectedSite === 'shelly' && <ShellyApp onSwitchSite={() => setSelectedSite(null)} />}
+          
+          {!selectedSite && (
+            <div dir="rtl" className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center p-4">
+              <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl p-8 max-w-3xl w-full text-center border-4 border-white">
                 
-                if (elementObj && elementObj.classList) {
-                    elementObj.classList.add('correct-anim');
-                }
+                <div className="flex justify-center mb-6">
+                  <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-5 rounded-full shadow-inner">
+                    <Sparkle className="w-12 h-12 text-purple-600" />
+                  </div>
+                </div>
 
-                // If they got it right on the first try, they truly succeeded.
-                if (attemptsOnCurrentWord === 0) {
-                    successfulWordsCount++;
-                } else {
-                    // They needed more than 1 try, so it goes to the failed list to repeat next round
-                    if (!failedWordsThisRound.some(w => w.en === currentWord.en)) {
-                        failedWordsThisRound.push(currentWord);
-                    }
-                }
+                <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-pink-500 mb-4 tracking-tight">
+                  פורטל אוצר המילים 📖
+                </h1>
+                <p className="text-lg md:text-xl text-gray-600 mb-10 font-medium">
+                  ברוכה הבאה! באיזה אתר תרצי להשתמש היום לתרגול The Giver?
+                </p>
 
-                disableInputs();
-                ui.nextActionContainer.classList.remove('hidden');
-                ui.overrideBtn.classList.add('hidden');
-                ui.nextBtn.classList.remove('hidden');
-                ui.nextBtn.focus();
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  
+                  {/* INBAR'S PORTAL BUTTON */}
+                  <button 
+                    onClick={() => setSelectedSite('inbar')} 
+                    className="group relative overflow-hidden bg-white border-2 border-indigo-100 hover:border-indigo-400 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 text-right text-gray-800 flex flex-col"
+                  >
+                    <div className="absolute top-0 left-0 w-2 h-full bg-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="bg-indigo-100 p-3 rounded-xl text-indigo-600">
+                        <LayoutTemplate size={28} />
+                      </div>
+                    </div>
+                    <h2 className="text-2xl font-bold mb-2 text-indigo-900">האתר של ענבר</h2>
+                    <p className="text-gray-500 text-sm mb-4">עיצוב קלאסי ונקי, עבודה לפי סבבים של הצלחות ותיקון טעויות חוזר.</p>
+                    <div className="mt-auto pt-4 border-t border-gray-100 text-indigo-600 font-bold flex items-center gap-2 group-hover:translate-x-[-5px] transition-transform">
+                      <ArrowLeft size={16} /> היכנסי לאתר
+                    </div>
+                  </button>
 
-            } else {
-                // Wrong Answer
-                attemptsOnCurrentWord++;
-                ui.wordDisplay.classList.remove('shake');
-                void ui.wordDisplay.offsetWidth; // Trigger reflow for animation
-                ui.wordDisplay.classList.add('shake');
+                  {/* SHELLY'S PORTAL BUTTON */}
+                  <button 
+                    onClick={() => setSelectedSite('shelly')} 
+                    className="group relative overflow-hidden bg-white border-2 border-pink-100 hover:border-pink-400 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 text-right text-gray-800 flex flex-col"
+                  >
+                    <div className="absolute top-0 left-0 w-2 h-full bg-pink-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="bg-pink-100 p-3 rounded-xl text-pink-600">
+                        <Cat size={28} />
+                      </div>
+                    </div>
+                    <h2 className="text-2xl font-bold mb-2 text-pink-900">האתר של שלי</h2>
+                    <p className="text-gray-500 text-sm mb-4">עם החתולים פיצפץ ודפני, בחירה בין תרגום מאנגלית לעברית ולהיפך.</p>
+                    <div className="mt-auto pt-4 border-t border-gray-100 text-pink-600 font-bold flex items-center gap-2 group-hover:translate-x-[-5px] transition-transform">
+                      <ArrowLeft size={16} /> היכנסי לאתר
+                    </div>
+                  </button>
 
-                if (elementObj && elementObj.classList && currentMode === 'mc') {
-                     elementObj.classList.add('wrong-anim');
-                     setTimeout(() => elementObj.classList.remove('wrong-anim'), 500);
-                }
+                </div>
+              </div>
+            </div>
+          )}
+        </React.Fragment>
+      );
+    }
 
-                // Logic: 
-                // Attempt 1 -> Give another try immediately
-                // Attempt 2+ -> Show correct answer, mark for next round, wait for user.
-                
-                if (attemptsOnCurrentWord === 1) {
-                    showFeedback(false, "טעות, נסי שוב!");
-                    // Ensure it's marked for next round because of the mistake
-                    if (!failedWordsThisRound.some(w => w.en === currentWord.en)) {
-                        failedWordsThisRound.push(currentWord);
-                    }
-                    
-                    if (currentMode === 'typing') {
-                        ui.typingInput.value = '';
-                        ui.typingInput.focus();
-                        ui.nextActionContainer.classList.remove('hidden');
-                        ui.overrideBtn.classList.remove('hidden');
-                        ui.nextBtn.classList.add('hidden');
-                    }
-                } else {
-                    // Failed twice. Show answer and wait for user to click next.
-                    isWaitingForNext = true;
-                    showFeedback(false, `התשובה הנכונה היא: ${currentWord.mainHe}`);
-                    
-                    if (!failedWordsThisRound.some(w => w.en === currentWord.en)) {
-                        failedWordsThisRound.push(currentWord);
-                    }
-
-                    disableInputs();
-                    ui.nextActionContainer.classList.remove('hidden');
-                    ui.nextBtn.classList.remove('hidden');
-                    if (currentMode === 'typing') {
-                        ui.overrideBtn.classList.remove('hidden');
-                    }
-                    ui.nextBtn.focus();
-                }
-            }
-        }
-
-        function overrideAsCorrect() {
-            // Remove from failed list if it's there
-            const failedIndex = failedWordsThisRound.findIndex(w => w.en === currentWord.en);
-            if (failedIndex > -1) {
-                failedWordsThisRound.splice(failedIndex, 1);
-            }
-            
-            // Add to success
-            successfulWordsCount++;
-            updateStatsBar();
-
-            // Move to the next word immediately without waiting
-            moveToNextWord();
-        }
-
-        function disableInputs() {
-            if (currentMode === 'typing') {
-                ui.typingInput.disabled = true;
-                document.getElementById('typing-submit-btn').disabled = true;
-            } else if (currentMode === 'mc') {
-                const buttons = ui.mcOptions.querySelectorAll('button');
-                buttons.forEach(btn => btn.disabled = true);
-            }
-        }
-
-        function moveToNextWord() {
-            currentWordIndex++;
-            loadWord();
-        }
-
-        function showFeedback(isCorrect, text) {
-            ui.feedbackArea.innerText = text;
-            ui.feedbackArea.className = "mt-6 text-center h-12 flex flex-col justify-center items-center font-bold text-lg rounded-lg transition-all p-2";
-            
-            if (isCorrect) {
-                ui.feedbackArea.classList.add('bg-green-100', 'text-green-700');
-            } else {
-                ui.feedbackArea.classList.add('bg-red-100', 'text-red-700');
-            }
-        }
-
-        function clearFeedback() {
-            ui.feedbackArea.innerText = '';
-            ui.feedbackArea.className = "mt-6 text-center h-12 flex flex-col justify-center items-center font-bold text-lg transition-all";
-        }
-
-        function handleEndOfRound() {
-            if (failedWordsThisRound.length > 0) {
-                ui.completedRoundNum.innerText = roundNumber;
-                showScreen('roundEnd');
-            } else {
-                showScreen('victory');
-                triggerConfetti();
-            }
-        }
-
-        function resetGame() {
-            showScreen('start');
-        }
-
-        function triggerConfetti() {
-            // Simple visual effect for victory
-            const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
-            for(let i=0; i<50; i++) {
-                const conf = document.createElement('div');
-                conf.style.position = 'absolute';
-                conf.style.width = '10px';
-                conf.style.height = '10px';
-                conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-                conf.style.left = Math.random() * 100 + 'vw';
-                conf.style.top = '-10px';
-                conf.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
-                conf.style.zIndex = '1000';
-                conf.style.opacity = '0.8';
-                document.body.appendChild(conf);
-
-                const speed = 1 + Math.random() * 3;
-                let pos = -10;
-                let angle = Math.random() * Math.PI * 2;
-                
-                const fall = setInterval(() => {
-                    pos += speed;
-                    conf.style.top = pos + 'px';
-                    conf.style.transform = `rotate(${pos}deg) translateX(${Math.sin(angle)*2}px)`;
-                    angle += 0.1;
-                    if (pos > window.innerHeight) {
-                        clearInterval(fall);
-                        conf.remove();
-                    }
-                }, 16);
-            }
-        }
-    </script>
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
 </body>
 </html>
