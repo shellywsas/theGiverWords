@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>משחק מילים - The Giver</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Heebo', sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+
+        .shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .btn-hover-effect {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .btn-hover-effect:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .correct-anim {
+            background-color: #10b981 !important;
+            color: white !important;
+            border-color: #10b981 !important;
+        }
+
+        .wrong-anim {
+            background-color: #ef4444 !important;
+            color: white !important;
+            border-color: #ef4444 !important;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div class="flex-grow flex items-center justify-center p-4">
+        <div id="app-container" class="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden relative border border-gray-100">
+            
+            <!-- Header -->
+            <div class="bg-indigo-600 text-white p-6 text-center">
+                <h1 class="text-3xl font-bold mb-2">אוצר מילים - The Giver</h1>
+                <p class="text-indigo-200">פרקים 15-18</p>
+            </div>
+
+            <div class="p-6 md:p-8">
+                <!-- START SCREEN -->
+                <div id="start-screen" class="text-center fade-in">
+                    <h2 class="text-2xl font-semibold mb-6 text-gray-700">בחרי את מצב המשחק:</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <button onclick="startGame('mc')" class="btn-hover-effect flex flex-col items-center justify-center p-6 bg-blue-50 border-2 border-blue-200 rounded-xl text-blue-700 hover:bg-blue-100 focus:outline-none focus:ring-4 focus:ring-blue-300">
+                            <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                            <span class="text-xl font-bold">אמריקאי</span>
+                            <span class="text-sm mt-2 text-blue-600/80">בחירה מתוך 4 תשובות</span>
+                        </button>
+                        
+                        <button onclick="startGame('typing')" class="btn-hover-effect flex flex-col items-center justify-center p-6 bg-purple-50 border-2 border-purple-200 rounded-xl text-purple-700 hover:bg-purple-100 focus:outline-none focus:ring-4 focus:ring-purple-300">
+                            <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            <span class="text-xl font-bold">כתיבה חופשית</span>
+                            <span class="text-sm mt-2 text-purple-600/80">לכתוב את התרגום בעצמך</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- GAME SCREEN -->
+                <div id="game-screen" class="hidden fade-in">
+                    <!-- Status Bar -->
+                    <div class="flex justify-between items-center mb-6 text-sm font-medium text-gray-500 bg-gray-50 p-3 rounded-lg">
+                        <div class="flex items-center gap-2">
+                            <span class="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md" id="round-display">סבב 1</span>
+                        </div>
+                        <div>נשארו בסבב: <span id="words-left" class="font-bold text-gray-700">0</span></div>
+                        <div class="text-green-600">הצלחות: <span id="success-count" class="font-bold">0</span></div>
+                    </div>
+
+                    <!-- The Word -->
+                    <div class="text-center mb-8">
+                        <h3 class="text-gray-500 text-sm mb-1 uppercase tracking-wider font-semibold">איך אומרים בעברית?</h3>
+                        <div id="current-word-display" class="text-4xl md:text-5xl font-extrabold text-indigo-900 py-4" dir="ltr">
+                            Word
+                        </div>
+                    </div>
+
+                    <!-- Input Area -->
+                    <div id="input-area" class="min-h-[160px]">
+                        <!-- Multiple Choice Options (Injected via JS) -->
+                        <div id="mc-options" class="grid grid-cols-1 md:grid-cols-2 gap-3 hidden">
+                            <!-- Buttons go here -->
+                        </div>
+
+                        <!-- Typing Input -->
+                        <div id="typing-input-container" class="hidden flex flex-col items-center">
+                            <input type="text" id="typing-input" autocomplete="off" placeholder="הקלידי תרגום לעברית..." 
+                                class="w-full md:w-2/3 p-4 text-center text-xl border-2 border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-colors shadow-sm">
+                            <button onclick="submitTyping()" id="typing-submit-btn" class="mt-4 bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-300 transition-colors btn-hover-effect w-full md:w-2/3 shadow-md">
+                                בדוק תשובה
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Feedback Area -->
+                    <div id="feedback-area" class="mt-6 text-center h-12 flex flex-col justify-center items-center font-bold text-lg rounded-lg transition-all">
+                        <!-- Messages go here -->
+                    </div>
+
+                    <!-- Next Button Container -->
+                    <div id="next-action-container" class="mt-4 hidden flex flex-col md:flex-row items-center justify-center gap-3 fade-in w-full px-4">
+                        <button id="override-btn" onclick="overrideAsCorrect()" class="bg-yellow-500 text-white font-bold py-3 px-6 rounded-xl hover:bg-yellow-600 focus:ring-4 focus:ring-yellow-300 transition-colors btn-hover-effect shadow-md text-lg w-full md:w-auto hidden">
+                            זה מה שכתבתי (צדקתי) ✋
+                        </button>
+                        <button id="next-btn" onclick="moveToNextWord()" class="bg-gray-800 text-white font-bold py-3 px-8 rounded-xl hover:bg-gray-900 focus:ring-4 focus:ring-gray-300 transition-colors btn-hover-effect shadow-md text-lg w-full md:w-auto">
+                            המשך למילה הבאה ➔
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ROUND END SCREEN -->
+                <div id="round-end-screen" class="hidden fade-in text-center py-8">
+                    <div class="w-20 h-20 mx-auto bg-yellow-100 rounded-full flex items-center justify-center mb-4 text-yellow-500">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    </div>
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">סוף סבב <span id="completed-round-num">1</span></h2>
+                    <p class="text-gray-600 mb-6 text-lg">כל הכבוד! יש עדיין מילים שצריך לתרגל.<br>בואי ננסה שוב את המילים שלא הצלחת.</p>
+                    <button onclick="startNextRound()" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-indigo-700 btn-hover-effect shadow-md text-lg">
+                        התחל סבב הבא
+                    </button>
+                </div>
+
+                <!-- VICTORY SCREEN -->
+                <div id="victory-screen" class="hidden fade-in text-center py-8">
+                    <div class="w-24 h-24 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-4 text-green-500">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">אלופה! 🎉</h2>
+                    <p class="text-gray-600 mb-6 text-lg">הצלחת לתרגם את כל המילים בהצלחה מרובה!</p>
+                    <button onclick="resetGame()" class="bg-green-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-green-700 btn-hover-effect shadow-md text-lg">
+                        שחקי שוב מההתחלה
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Vocabulary Database
+        const vocabulary = [
+            { en: "rigid", he: ["נוקשה"], mainHe: "נוקשה" },
+            { en: "grotesque(ly)", he: ["גרוטסקי", "מגוחך", "בצורה גרוטסקית", "מפלצתי"], mainHe: "גרוטסקי / מגוחך" },
+            { en: "frantically", he: ["בטירוף", "בבהלה"], mainHe: "בטירוף / בבהלה" },
+            { en: "carnage", he: ["טבח", "קטל"], mainHe: "טבח / קטל" },
+            { en: "affectionate(ly)", he: ["בחיבה", "אוהב", "מלא חיבה"], mainHe: "בחיבה / אוהב" },
+            { en: "pervaded", he: ["התפשט", "חדר לכל מקום", "חדר"], mainHe: "התפשט / חדר לכל מקום" },
+            { en: "hearth", he: ["אח", "קמין"], mainHe: "אח / קמין" },
+            { en: "polished", he: ["מלוטש", "מצוחצח"], mainHe: "מלוטש / מצוחצח" },
+            { en: "to treasure", he: ["להוקיר", "להעריך"], mainHe: "להוקיר / להעריך" },
+            { en: "rehearsed", he: ["מתורגל", "עשה חזרות", "חזר על"], mainHe: "מתורגל / עשה חזרות" },
+            { en: "unexpected", he: ["לא צפוי", "בלתי צפוי"], mainHe: "לא צפוי" },
+            { en: "depth", he: ["עומק"], mainHe: "עומק" },
+            { en: "shallow", he: ["רדוד"], mainHe: "רדוד" },
+            { en: "impatience", he: ["חוסר סבלנות", "אי סבלנות"], mainHe: "חוסר סבלנות" },
+            { en: "injustice", he: ["חוסר צדק", "אי צדק"], mainHe: "חוסר צדק" },
+            { en: "cruelty", he: ["אכזריות"], mainHe: "אכזריות" },
+            { en: "passionately", he: ["בתשוקה", "בלהט"], mainHe: "בתשוקה / בלהט" },
+            { en: "exaggerated", he: ["מוגזם"], mainHe: "מוגזם" },
+            { en: "gradually", he: ["בהדרגה"], mainHe: "בהדרגה" },
+            { en: "irritated", he: ["מעוצבן", "מגורה", "עצבני"], mainHe: "מעוצבן / מגורה" },
+            { en: "(area of) expertise", he: ["תחום מומחיות", "מומחיות"], mainHe: "תחום מומחיות" },
+            { en: "loss", he: ["אובדן", "הפסד"], mainHe: "אובדן / הפסד" },
+            { en: "occasion", he: ["אירוע", "הזדמנות"], mainHe: "אירוע / הזדמנות" },
+            { en: "identical", he: ["זהה"], mainHe: "זהה" },
+            { en: "failure", he: ["כישלון"], mainHe: "כישלון" },
+            { en: "to be puzzled", he: ["להיות מופתע", "להיות נבוך", "להיות מבולבל", "מבולבל", "מופתע", "נבוך"], mainHe: "להיות מופתע / מבולבל" },
+            { en: "remarkable", he: ["יוצא מן הכלל", "ראוי לציון", "מדהים"], mainHe: "יוצא מן הכלל / ראוי לציון" },
+            { en: "self-possessed", he: ["שולט בעצמו", "בטוח בעצמו", "קור רוח"], mainHe: "שולט בעצמו / בטוח בעצמו" },
+            { en: "serene", he: ["שליו", "רגוע"], mainHe: "שליו / רגוע" },
+            { en: "excruciating", he: ["מייסר"], mainHe: "מייסר" },
+            { en: "stunned, to stun", he: ["המום", "להמם", "המום להמם", "המום, להמם"], mainHe: "המום, להמם" },
+            { en: "to insist", he: ["להתעקש"], mainHe: "להתעקש" }
+        ];
+
+        let currentMode = 'mc'; // 'mc' or 'typing'
+        let allWords = [...vocabulary];
+        let currentRoundWords = [];
+        let failedWordsThisRound = [];
+        let successfulWordsCount = 0;
+        let roundNumber = 1;
+        
+        let currentWordIndex = 0;
+        let currentWord = null;
+        let attemptsOnCurrentWord = 0;
+        let isWaitingForNext = false;
+
+        // Elements
+        const screens = {
+            start: document.getElementById('start-screen'),
+            game: document.getElementById('game-screen'),
+            roundEnd: document.getElementById('round-end-screen'),
+            victory: document.getElementById('victory-screen')
+        };
+        
+        const ui = {
+            roundDisplay: document.getElementById('round-display'),
+            wordsLeft: document.getElementById('words-left'),
+            successCount: document.getElementById('success-count'),
+            wordDisplay: document.getElementById('current-word-display'),
+            mcOptions: document.getElementById('mc-options'),
+            typingContainer: document.getElementById('typing-input-container'),
+            typingInput: document.getElementById('typing-input'),
+            feedbackArea: document.getElementById('feedback-area'),
+            completedRoundNum: document.getElementById('completed-round-num'),
+            nextActionContainer: document.getElementById('next-action-container'),
+            nextBtn: document.getElementById('next-btn'),
+            overrideBtn: document.getElementById('override-btn')
+        };
+
+        function showScreen(screenName) {
+            Object.values(screens).forEach(s => s.classList.add('hidden'));
+            screens[screenName].classList.remove('hidden');
+        }
+
+        // Shuffle array using Fisher-Yates
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex != 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        function startGame(mode) {
+            currentMode = mode;
+            allWords = [...vocabulary];
+            successfulWordsCount = 0;
+            roundNumber = 1;
+            
+            // Set up UI for chosen mode
+            if (mode === 'mc') {
+                ui.mcOptions.classList.remove('hidden');
+                ui.typingContainer.classList.add('hidden');
+            } else {
+                ui.mcOptions.classList.add('hidden');
+                ui.typingContainer.classList.remove('hidden');
+            }
+
+            // Bind Enter key for typing
+            ui.typingInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    if (isWaitingForNext) return; // Prevent double submit
+                    submitTyping();
+                }
+            });
+
+            startRound(allWords);
+            showScreen('game');
+        }
+
+        function startNextRound() {
+            roundNumber++;
+            startRound(failedWordsThisRound);
+        }
+
+        function startRound(wordsArray) {
+            currentRoundWords = shuffle([...wordsArray]);
+            failedWordsThisRound = [];
+            currentWordIndex = 0;
+            
+            ui.roundDisplay.innerText = `סבב ${roundNumber}`;
+            updateStatsBar();
+            loadWord();
+            showScreen('game');
+        }
+
+        function updateStatsBar() {
+            ui.wordsLeft.innerText = currentRoundWords.length - currentWordIndex;
+            ui.successCount.innerText = successfulWordsCount;
+        }
+
+        function loadWord() {
+            if (currentWordIndex >= currentRoundWords.length) {
+                handleEndOfRound();
+                return;
+            }
+
+            isWaitingForNext = false;
+            currentWord = currentRoundWords[currentWordIndex];
+            attemptsOnCurrentWord = 0;
+            
+            updateStatsBar();
+            
+            // Render English Word
+            ui.wordDisplay.innerText = currentWord.en;
+            ui.wordDisplay.classList.remove('shake');
+            clearFeedback();
+            ui.nextActionContainer.classList.add('hidden'); // Hide next button initially
+            ui.overrideBtn.classList.add('hidden');
+            ui.nextBtn.classList.remove('hidden');
+
+            if (currentMode === 'mc') {
+                renderMultipleChoice(currentWord);
+            } else {
+                ui.typingInput.value = '';
+                ui.typingInput.focus();
+                ui.typingInput.disabled = false;
+                document.getElementById('typing-submit-btn').disabled = false;
+            }
+        }
+
+        function renderMultipleChoice(correctWordObj) {
+            ui.mcOptions.innerHTML = '';
+            
+            // Get 3 random incorrect answers from the FULL vocabulary
+            let incorrectOptions = vocabulary.filter(w => w.en !== correctWordObj.en);
+            incorrectOptions = shuffle(incorrectOptions).slice(0, 3);
+            
+            let options = [correctWordObj, ...incorrectOptions];
+            options = shuffle(options);
+
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "p-4 border-2 border-gray-200 rounded-xl text-lg font-medium hover:bg-indigo-50 hover:border-indigo-300 transition-colors focus:outline-none";
+                btn.innerText = opt.mainHe;
+                btn.onclick = () => handleAnswer(opt.en === correctWordObj.en, btn);
+                ui.mcOptions.appendChild(btn);
+            });
+        }
+
+        function submitTyping() {
+            if(isWaitingForNext) return;
+            const userText = ui.typingInput.value.trim().toLowerCase();
+            if (!userText) return;
+            
+            // Check if user input matches any of the valid Hebrew translations
+            let isCorrect = false;
+            for (let validHe of currentWord.he) {
+                if (userText === validHe.trim().toLowerCase()) {
+                    isCorrect = true;
+                    break;
+                }
+            }
+            
+            handleAnswer(isCorrect, ui.typingInput);
+        }
+
+        function handleAnswer(isCorrect, elementObj) {
+            if (isWaitingForNext) return;
+            
+            if (isCorrect) {
+                isWaitingForNext = true;
+                showFeedback(true, "מעולה! תשובה נכונה.");
+                
+                if (elementObj && elementObj.classList) {
+                    elementObj.classList.add('correct-anim');
+                }
+
+                // If they got it right on the first try, they truly succeeded.
+                if (attemptsOnCurrentWord === 0) {
+                    successfulWordsCount++;
+                } else {
+                    // They needed more than 1 try, so it goes to the failed list to repeat next round
+                    if (!failedWordsThisRound.some(w => w.en === currentWord.en)) {
+                        failedWordsThisRound.push(currentWord);
+                    }
+                }
+
+                disableInputs();
+                ui.nextActionContainer.classList.remove('hidden');
+                ui.overrideBtn.classList.add('hidden');
+                ui.nextBtn.classList.remove('hidden');
+                ui.nextBtn.focus();
+
+            } else {
+                // Wrong Answer
+                attemptsOnCurrentWord++;
+                ui.wordDisplay.classList.remove('shake');
+                void ui.wordDisplay.offsetWidth; // Trigger reflow for animation
+                ui.wordDisplay.classList.add('shake');
+
+                if (elementObj && elementObj.classList && currentMode === 'mc') {
+                     elementObj.classList.add('wrong-anim');
+                     setTimeout(() => elementObj.classList.remove('wrong-anim'), 500);
+                }
+
+                // Logic: 
+                // Attempt 1 -> Give another try immediately
+                // Attempt 2+ -> Show correct answer, mark for next round, wait for user.
+                
+                if (attemptsOnCurrentWord === 1) {
+                    showFeedback(false, "טעות, נסי שוב!");
+                    // Ensure it's marked for next round because of the mistake
+                    if (!failedWordsThisRound.some(w => w.en === currentWord.en)) {
+                        failedWordsThisRound.push(currentWord);
+                    }
+                    
+                    if (currentMode === 'typing') {
+                        ui.typingInput.value = '';
+                        ui.typingInput.focus();
+                        ui.nextActionContainer.classList.remove('hidden');
+                        ui.overrideBtn.classList.remove('hidden');
+                        ui.nextBtn.classList.add('hidden');
+                    }
+                } else {
+                    // Failed twice. Show answer and wait for user to click next.
+                    isWaitingForNext = true;
+                    showFeedback(false, `התשובה הנכונה היא: ${currentWord.mainHe}`);
+                    
+                    if (!failedWordsThisRound.some(w => w.en === currentWord.en)) {
+                        failedWordsThisRound.push(currentWord);
+                    }
+
+                    disableInputs();
+                    ui.nextActionContainer.classList.remove('hidden');
+                    ui.nextBtn.classList.remove('hidden');
+                    if (currentMode === 'typing') {
+                        ui.overrideBtn.classList.remove('hidden');
+                    }
+                    ui.nextBtn.focus();
+                }
+            }
+        }
+
+        function overrideAsCorrect() {
+            // Remove from failed list if it's there
+            const failedIndex = failedWordsThisRound.findIndex(w => w.en === currentWord.en);
+            if (failedIndex > -1) {
+                failedWordsThisRound.splice(failedIndex, 1);
+            }
+            
+            // Add to success
+            successfulWordsCount++;
+            updateStatsBar();
+
+            // Move to the next word immediately without waiting
+            moveToNextWord();
+        }
+
+        function disableInputs() {
+            if (currentMode === 'typing') {
+                ui.typingInput.disabled = true;
+                document.getElementById('typing-submit-btn').disabled = true;
+            } else if (currentMode === 'mc') {
+                const buttons = ui.mcOptions.querySelectorAll('button');
+                buttons.forEach(btn => btn.disabled = true);
+            }
+        }
+
+        function moveToNextWord() {
+            currentWordIndex++;
+            loadWord();
+        }
+
+        function showFeedback(isCorrect, text) {
+            ui.feedbackArea.innerText = text;
+            ui.feedbackArea.className = "mt-6 text-center h-12 flex flex-col justify-center items-center font-bold text-lg rounded-lg transition-all p-2";
+            
+            if (isCorrect) {
+                ui.feedbackArea.classList.add('bg-green-100', 'text-green-700');
+            } else {
+                ui.feedbackArea.classList.add('bg-red-100', 'text-red-700');
+            }
+        }
+
+        function clearFeedback() {
+            ui.feedbackArea.innerText = '';
+            ui.feedbackArea.className = "mt-6 text-center h-12 flex flex-col justify-center items-center font-bold text-lg transition-all";
+        }
+
+        function handleEndOfRound() {
+            if (failedWordsThisRound.length > 0) {
+                ui.completedRoundNum.innerText = roundNumber;
+                showScreen('roundEnd');
+            } else {
+                showScreen('victory');
+                triggerConfetti();
+            }
+        }
+
+        function resetGame() {
+            showScreen('start');
+        }
+
+        function triggerConfetti() {
+            // Simple visual effect for victory
+            const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
+            for(let i=0; i<50; i++) {
+                const conf = document.createElement('div');
+                conf.style.position = 'absolute';
+                conf.style.width = '10px';
+                conf.style.height = '10px';
+                conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                conf.style.left = Math.random() * 100 + 'vw';
+                conf.style.top = '-10px';
+                conf.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                conf.style.zIndex = '1000';
+                conf.style.opacity = '0.8';
+                document.body.appendChild(conf);
+
+                const speed = 1 + Math.random() * 3;
+                let pos = -10;
+                let angle = Math.random() * Math.PI * 2;
+                
+                const fall = setInterval(() => {
+                    pos += speed;
+                    conf.style.top = pos + 'px';
+                    conf.style.transform = `rotate(${pos}deg) translateX(${Math.sin(angle)*2}px)`;
+                    angle += 0.1;
+                    if (pos > window.innerHeight) {
+                        clearInterval(fall);
+                        conf.remove();
+                    }
+                }, 16);
+            }
+        }
+    </script>
+</body>
+</html>
